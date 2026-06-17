@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>業務ナビ｜運営システム（CRUD完備）</title>
+<style>
+:root{
+  --navy:#1C2A4E;--navy2:#26365C;--navy3:#33456E;--teal:#0EA88E;--teal-d:#0B8C76;--teal-soft:#E7F6F2;
+  --bg:#EEF1F8;--surface:#FFFFFF;--surface2:#F7F9FC;--ink:#1B2436;--muted:#6B7689;--line:#E6EAF2;
+  --green:#16A34A;--green-soft:#EAF7EE;--amber:#D9870B;--amber-soft:#FCF3E3;--red:#DC2626;--red-soft:#FDECEC;
+  --shadow:0 8px 26px rgba(28,42,78,.10);--shadow-sm:0 2px 8px rgba(28,42,78,.05);
+  --font:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;min-width:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}body{font-family:var(--font);color:var(--ink);background:var(--bg);display:flex;font-size:14px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+button{font-family:inherit;cursor:pointer}:focus-visible{outline:3px solid rgba(14,168,142,.4);outline-offset:2px}
+
+.side{flex:0 0 240px;background:var(--navy);color:#fff;height:100vh;display:flex;flex-direction:column;padding:20px 14px}
+.brand{display:flex;align-items:center;gap:11px;padding:6px 8px 16px}
+.brand .logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--teal),#13c4a6);display:flex;align-items:center;justify-content:center;font-weight:900}
+.brand b{font-size:15px;font-weight:800}.brand span{display:block;font-size:10px;color:#90A2C4;margin-top:1px}
+.nav{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+.nav .grp{font-size:10px;color:#7488AD;font-weight:700;letter-spacing:.08em;padding:13px 10px 5px}
+.nav button{display:flex;align-items:center;gap:11px;width:100%;background:none;border:none;color:#C3CFE6;padding:10px 11px;border-radius:11px;font-size:13.5px;font-weight:600;text-align:left}
+.nav button:hover{background:var(--navy2);color:#fff}.nav button.on{background:var(--navy3);color:#fff}
+.nav button .ct{margin-left:auto;background:#46598A;color:#fff;font-size:10px;font-weight:800;min-width:20px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 5px}
+
+.wrap{flex:1 1 auto;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.top{flex:0 0 auto;height:64px;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:0 26px}
+.top .pt{font-size:17px;font-weight:800}.top .pt small{display:block;font-size:11px;color:var(--muted);font-weight:600;margin-top:1px}
+.top .me{margin-left:auto;display:flex;align-items:center;gap:9px}
+.top .me .av{width:36px;height:36px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800}
+.top .me .nm{font-size:12px;font-weight:700}.top .me .nm span{display:block;font-size:10px;color:var(--muted)}
+
+.content{flex:1 1 auto;overflow-y:auto;padding:22px 26px 40px}
+.inner{max-width:1340px;margin:0 auto}
+.view{display:none}.view.active{display:block;animation:fade .2s}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+.bar{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.bar h2{font-size:18px;font-weight:800}.bar .sub{font-size:12px;color:var(--muted)}
+.addbtn{margin-left:auto;background:var(--teal);color:#fff;border:none;border-radius:10px;height:40px;padding:0 16px;font-weight:800;font-size:13px;display:inline-flex;align-items:center;gap:6px}
+.addbtn:active{transform:scale(.98)}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-sm);overflow:hidden}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl thead th{background:var(--navy);color:#fff;font-size:12px;font-weight:700;text-align:left;padding:12px 14px;white-space:nowrap}
+.tbl tbody td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl tbody tr:hover{background:var(--surface2)}.tbl tbody tr:last-child td{border-bottom:none}
+.tbl .nm{font-weight:800;color:var(--navy)}
+.badge{font-size:11px;font-weight:800;padding:4px 11px;border-radius:999px;white-space:nowrap}
+.b-green{background:var(--green-soft);color:var(--green)}.b-amber{background:var(--amber-soft);color:var(--amber)}.b-red{background:var(--red-soft);color:var(--red)}.b-gray{background:#EEF1F6;color:var(--muted)}.b-navy{background:#E7ECF6;color:var(--navy)}
+.ops{display:flex;gap:8px;white-space:nowrap}
+.op{border:1px solid var(--line);background:#fff;border-radius:8px;height:32px;padding:0 11px;font-size:12px;font-weight:800;color:var(--teal-d)}
+.op.del{color:var(--red);border-color:#F3CFCF}
+.op.go{color:#fff;background:var(--teal);border-color:var(--teal)}
+.empty{padding:40px;text-align:center;color:var(--muted);font-size:13px}
+
+/* tasks */
+.task{display:flex;align-items:center;gap:13px;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;position:relative;overflow:hidden;background:#fff}
+.task::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--c)}
+.task .bd{flex:1 1 auto;min-width:0}.task .nm2{font-size:14px;font-weight:800;color:var(--navy)}
+.task .ac{font-size:12.5px;color:var(--ink);margin-top:2px}.task .du{font-size:11.5px;color:var(--muted);margin-top:3px}
+.task .du.al{color:var(--red);font-weight:800}
+.task.done{opacity:.5}.task.done .nm2{text-decoration:line-through}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow-sm)}
+.kpi .t{font-size:12px;color:var(--muted);font-weight:600}.kpi .n{font-size:26px;font-weight:800;margin-top:6px}
+.cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.setcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow-sm)}
+.setcard b{font-size:14px;color:var(--navy)}.setcard p{font-size:12px;color:var(--muted);margin:6px 0 12px}
+
+/* karte */
+.ksummary{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;box-shadow:var(--shadow-sm)}
+.ksummary b{font-size:16px;color:var(--navy)}
+.kselect{height:40px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font-size:14px;font-family:var(--font);background:#fff;font-weight:700}
+.ktimeline{position:relative}.ktimeline::before{content:"";position:absolute;left:21px;top:20px;bottom:40px;width:2px;background:var(--line)}
+.kstep{display:flex;gap:14px;position:relative;padding-bottom:14px}
+.krail{flex:0 0 44px;display:flex;justify-content:center}
+.kdot{width:42px;height:42px;border-radius:50%;background:#E4E8F1;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;z-index:2;line-height:1}
+.kdot small{font-size:7px;opacity:.9}.kdot b{font-size:15px}
+.kstep.done .kdot{background:var(--teal)}.kstep.cur .kdot{background:#fff;border:3px solid var(--amber);color:var(--amber)}.kstep.todo .kdot{background:#fff;border:2px solid var(--line);color:var(--muted)}
+.khere{position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--amber);color:#fff;font-size:8.5px;font-weight:800;padding:2px 6px;border-radius:999px}
+.kcard{flex:1 1 auto;min-width:0;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-sm);padding:13px 15px}
+.kstep.cur .kcard{border-color:var(--amber)}
+.ktop{display:flex;align-items:center;gap:9px}.klab{font-size:10px;font-weight:800;color:var(--teal-d)}.ktitle{font-size:15px;font-weight:800;color:var(--navy)}
+.ksub{font-size:10.5px;font-weight:800;color:var(--muted);margin:10px 0 6px}
+.kchips{display:flex;flex-wrap:wrap;gap:6px}.kchip{font-size:11px;background:var(--surface2);border:1px solid var(--line);border-radius:7px;padding:4px 9px}.kchip.ok{background:var(--green-soft);border-color:#BBE7C8;color:var(--green);font-weight:700}.kchip.ok::before{content:"✓ "}
+.kfiles{display:flex;flex-direction:column;gap:7px}
+.kfile{display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:9px;padding:7px 10px;background:var(--surface2)}
+.kfi{flex:0 0 auto;width:26px;height:26px;border-radius:7px;background:var(--teal-soft);color:var(--teal-d);font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.kfn{flex:1 1 auto;min-width:0;font-size:12.5px;font-weight:700;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kop{font-size:11px;font-weight:800;color:var(--teal-d);cursor:pointer}
+.kfile.pend{opacity:.7}.kfile.pend .kfi{background:#EEF1F6;color:var(--muted)}.kfile.pend .kfn{color:var(--muted)}.ktag{font-size:10px;color:var(--amber);font-weight:800}
+.kadd{margin-top:8px;border:1.5px dashed var(--teal);color:var(--teal-d);background:var(--teal-soft);border-radius:9px;padding:7px;font-size:11.5px;font-weight:800;width:100%}
+/* guide */
+.glead{background:linear-gradient(135deg,var(--navy),#33508C);color:#fff;border-radius:14px;padding:16px 18px;margin-bottom:14px;font-size:15px;font-weight:700;line-height:1.6}.glead .em{color:#5FE0C8}
+.gcard{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-sm);margin-bottom:14px;padding:14px 16px}
+.gcard h3{font-size:14px;font-weight:800;color:var(--navy);margin-bottom:10px}
+.glist{list-style:none;display:flex;flex-direction:column;gap:9px}.glist li{font-size:13.5px;line-height:1.55;display:flex;gap:8px}.glist li::before{content:"";flex:0 0 auto;width:7px;height:7px;border-radius:50%;background:var(--teal);margin-top:6px}.glist li b{color:var(--navy)}
+.gtier{display:flex;gap:10px;border:1px solid var(--line);border-radius:11px;padding:11px 13px;margin-bottom:8px}.gtier .tg{flex:0 0 auto;font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;height:fit-content}.gtier.i{background:var(--green-soft)}.gtier.i .tg{background:var(--green);color:#fff}.gtier.s{background:var(--teal-soft)}.gtier.s .tg{background:var(--teal);color:#fff}.gtier.m{background:var(--amber-soft)}.gtier.m .tg{background:var(--amber);color:#fff}.gtier p{font-size:13px}.gtier p b{color:var(--navy)}
+.gwarn{list-style:none;display:flex;flex-direction:column;gap:8px}.gwarn li{font-size:13px;background:var(--amber-soft);border:1px solid #F0D08A;border-radius:10px;padding:9px 12px;color:#7A5206;display:flex;gap:8px}.gwarn li b{color:#5A3D04}.gwarn li::before{content:"！";color:var(--amber);font-weight:900}
+.gcl{list-style:none;display:flex;flex-direction:column;gap:8px}.gcl li{font-size:13.5px;display:flex;gap:9px;align-items:flex-start}.gcl li::before{content:"□";color:var(--teal);font-weight:900}
+.gph{display:flex;gap:11px;border:1px solid var(--line);border-radius:11px;padding:11px 13px;margin-bottom:8px}.gph .n{flex:0 0 auto;width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:12px}.gph b{color:var(--navy);font-size:13px}.gph p{font-size:12px;color:var(--ink);margin-top:2px}
+.gtext{flex:1 1 auto}
+.gctl{margin-left:auto;display:flex;gap:6px;flex:0 0 auto;align-self:flex-start}
+.gctl button{border:1px solid var(--line);background:#fff;border-radius:7px;height:28px;padding:0 9px;font-size:11px;font-weight:800;color:var(--teal-d);cursor:pointer}
+.gctl button.d{color:var(--red);border-color:#F3CFCF}
+.gaddbtn{margin-top:10px;border:1.5px dashed var(--teal);color:var(--teal-d);background:var(--teal-soft);border-radius:9px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer}
+.gminor{border:1px solid var(--line);background:#fff;border-radius:8px;height:30px;padding:0 12px;font-size:11.5px;font-weight:800;color:var(--teal-d);cursor:pointer}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(20,30,55,.5);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal.on{display:flex}
+.modal .box{background:#fff;border-radius:18px;width:100%;max-width:460px;max-height:90vh;overflow:auto;box-shadow:var(--shadow)}
+.modal .mh{display:flex;align-items:center;padding:18px 20px;border-bottom:1px solid var(--line)}
+.modal .mh h3{font-size:16px;font-weight:800}.modal .mh .x{margin-left:auto;border:none;background:none;font-size:22px;color:var(--muted)}
+.modal .mb{padding:16px 20px}
+.fld{margin-bottom:13px}.fld label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px}
+.fld input,.fld select{width:100%;height:42px;border:1.5px solid var(--line);border-radius:10px;padding:0 12px;font-size:14px;font-family:var(--font);background:#fff}
+.fld input:focus,.fld select:focus{border-color:var(--teal);outline:none}
+.mf{display:flex;gap:10px;padding:0 20px 20px}
+.save{flex:1;background:var(--teal);color:#fff;border:none;border-radius:11px;height:46px;font-size:15px;font-weight:800}
+.cancel{flex:0 0 120px;background:#fff;color:var(--muted);border:1.5px solid var(--line);border-radius:11px;height:46px;font-weight:800}
+.toast{position:fixed;left:50%;bottom:28px;translate:-50% 20px;background:var(--navy);color:#fff;font-size:13px;font-weight:700;padding:12px 22px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .25s,translate .25s;z-index:600}
+.gate{position:fixed;inset:0;background:linear-gradient(135deg,#1C2A4E,#0E1830);display:flex;align-items:center;justify-content:center;z-index:500;padding:20px}
+.gbox{background:#fff;border-radius:20px;width:100%;max-width:400px;padding:26px 24px;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+.glogo{font-size:20px;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:9px}
+.glogo .gl{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--teal),#13c4a6);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900}
+.gsub{font-size:12px;color:var(--muted);margin:4px 0 16px}
+.gtabs{display:flex;gap:8px;margin-bottom:16px}
+.gtabs button{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:10px;height:40px;font-weight:800;font-size:13px;color:var(--muted);cursor:pointer}
+.gtabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.gfield{margin-bottom:12px}.gfield label{display:block;font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:5px}
+.gfield input{width:100%;height:44px;border:1.5px solid var(--line);border-radius:11px;padding:0 13px;font-size:14px;font-family:var(--font)}
+.gfield input:focus{border-color:var(--teal);outline:none}
+.gbtn{width:100%;height:48px;border:none;border-radius:12px;background:var(--teal);color:#fff;font-size:15px;font-weight:800;margin-top:4px;cursor:pointer}
+.gbtn:disabled{opacity:.6}
+.gerr{color:var(--red);font-size:12px;font-weight:700;margin-top:10px;min-height:16px}
+.ghint{font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6}
+.toast.show{opacity:1;translate:-50% 0}
+</style>
+</head>
+<body>
+<aside class="side">
+  <div class="brand"><div class="logo">G</div><div><b>業務ナビ</b><span>運営システム</span></div></div>
+  <nav class="nav" id="nav">
+    <div class="grp">メイン</div>
+    <button data-v="home" class="on">🏠 ホーム</button>
+    <button data-v="customers">👥 顧客管理<span class="ct" id="ct-customers"></span></button>
+    <button data-v="karte">🗂️ 顧客カルテ</button>
+    <button data-v="sends">✉️ 送る予定<span class="ct" id="ct-sends"></span></button>
+    <div class="grp">設定・管理</div>
+    <button data-v="urls">🔗 チャネル・URL</button>
+    <button data-v="docs">📎 資料・PDF</button>
+    <button data-v="rules">🔔 自動フォロー・通知</button>
+    <button data-v="sales">💴 売上・入金</button>
+    <button data-v="settings">⚙️ 設定・権限</button>
+    <div class="grp">ガイド（面談前に確認）</div>
+    <button data-v="g_free">📘 無料診断会ガイド</button>
+    <button data-v="g_close">📕 クロージングガイド</button>
+    <button data-v="g_report">📗 診断レポート納品ガイド</button>
+  </nav>
+</aside>
+
+<div class="wrap">
+  <header class="top">
+    <div class="pt" id="pt">ホーム<small id="pts">追加・修正・削除・保存に対応</small></div>
+    <div class="me"><div class="av">運</div><div class="nm">運営担当<span>管理者</span></div><button class="op" onclick="logout()" style="margin-left:10px;height:36px">ログアウト</button></div>
+  </header>
+  <div class="content"><div class="inner">
+
+    <!-- HOME -->
+    <section class="view active" id="home">
+      <div class="kpis" id="kpis"></div>
+      <div class="bar"><h2>今日やること</h2><span class="sub">押すと完了。右上から追加</span><button class="addbtn" onclick="openTask(null)">＋ タスクを追加</button></div>
+      <div id="tasks"></div>
+
+      <div class="bar" style="margin-top:24px"><h2>顧客の進行状況</h2><span class="sub">行をクリックでカルテを開く</span>
+        <button class="op" style="margin-left:auto;height:38px" onclick="go('customers')">顧客管理を開く</button>
+        <button class="op" style="height:38px" onclick="go('karte')">カルテ一覧</button></div>
+      <div class="panel"><table class="tbl"><thead><tr><th style="width:170px">顧客</th><th style="width:120px">顧客層</th><th style="width:200px">進行（STEP）</th><th style="width:110px">状態</th><th>次にやること</th></tr></thead><tbody id="homeProg"></tbody></table></div>
+    </section>
+
+    <!-- generic entity views -->
+    <section class="view" id="customers"></section>
+    <section class="view" id="sends"></section>
+    <section class="view" id="urls"></section>
+    <section class="view" id="docs"></section>
+    <section class="view" id="rules"></section>
+    <section class="view" id="sales"></section>
+
+    <!-- settings -->
+    <section class="view" id="settings">
+      <div class="bar"><h2>設定・権限</h2><span class="sub">各項目を編集</span></div>
+    </section>
+
+    <section class="view" id="karte"></section>
+    <section class="view" id="g_free"></section>
+    <section class="view" id="g_close"></section>
+    <section class="view" id="g_report"></section>
+
+  </div></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal"><div class="box">
+  <div class="mh"><h3 id="mTitle">追加</h3><button class="x" onclick="closeModal()">×</button></div>
+  <div class="mb" id="mBody"></div>
+  <div class="mf"><button class="save" onclick="saveModal()">保存する</button><button class="cancel" onclick="closeModal()">キャンセル</button></div>
+</div></div>
+<div class="gate" id="gate" style="display:none">
+ <div class="gbox">
+  <div class="glogo"><span class="gl">G</span> 業務ナビ</div>
+  <div class="gsub">運営システムにログイン</div>
+  <div class="gtabs"><button id="tab-login" class="on" onclick="gateTab('login')">ログイン</button><button id="tab-reg" onclick="gateTab('reg')">新規登録</button></div>
+  <div class="gfield"><label>APIサーバーURL（Renderの公開URL）</label><input id="g_api" placeholder="https://gyomu-navi-api.onrender.com"></div>
+  <div class="gfield"><label>メールアドレス</label><input id="g_email" type="email" placeholder="you@example.com"></div>
+  <div class="gfield"><label>パスワード（6文字以上）</label><input id="g_pw" type="password" placeholder="••••••"></div>
+  <div class="gfield gregonly" style="display:none"><label>会社名（任意）</label><input id="g_co" placeholder="〇〇株式会社"></div>
+  <button class="gbtn" id="gsubmit" onclick="gateSubmit()">ログイン</button>
+  <div class="gerr" id="gerr"></div>
+  <div class="ghint">初めての方は「新規登録」から。APIサーバーURLは、公開後に発行されるRenderのURL（…onrender.com）を貼り付けてください。初回ログイン時にサンプルが入ります。</div>
+ </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- データ & スキーマ ---------- */
+const ENT={
+ customers:{title:"顧客管理",sub:"全リードと進行（追加・修正・削除）",
+  cols:[{k:"nm",label:"会社名",type:"text",nm:1},{k:"seg",label:"顧客層",type:"select",opts:["個人・1人社長","小規模法人","中小・複数部署"]},{k:"st",label:"ステータス",type:"select",opts:["予約済","面談済","検討中","成約","納品済","不成約"],badge:1},{k:"next",label:"次にやること",type:"text"},{k:"own",label:"担当",type:"text"}],
+  rows:[{nm:"山田商事",seg:"小規模法人",st:"検討中",next:"検討フォロー",own:"運営"},{nm:"佐藤工業",seg:"小規模法人",st:"面談済",next:"面談の準備",own:"運営"},{nm:"鈴木物産",seg:"中小・複数部署",st:"成約",next:"入金確認",own:"運営"},{nm:"田中商店",seg:"個人・1人社長",st:"納品済",next:"レポート作成",own:"運営"}]},
+ sends:{title:"送る予定",sub:"フォロー・通知（追加・修正・削除・送信）",
+  cols:[{k:"nm",label:"顧客",type:"text",nm:1},{k:"body",label:"内容（テンプレ）",type:"text"},{k:"ch",label:"チャネル",type:"select",opts:["メール","LINE","アプリ内"]},{k:"date",label:"予定日",type:"text"},{k:"st",label:"状態",type:"select",opts:["未送信","送信済"],badge:1}],
+  rows:[{nm:"山田商事",body:"検討中フォロー文",ch:"メール",date:"6/15",st:"未送信"},{nm:"鈴木物産",body:"入金リンク 再送",ch:"LINE",date:"6/15",st:"未送信"},{nm:"高橋設計",body:"面談 前日リマインド",ch:"LINE",date:"6/15",st:"未送信"}],
+  extraOp:{label:"送信",cls:"go",fn:"sendRow"}},
+ urls:{title:"チャネル・URL管理",sub:"同種別を連番で何個でも（追加・修正・削除）",
+  cols:[{k:"type",label:"種別",type:"select",opts:["HP","LP","Instagram","YouTube","TikTok","Threads","Facebook","note"],badge:1},{k:"no",label:"番号",type:"text"},{k:"title",label:"タイトル",type:"text",nm:1},{k:"url",label:"URL",type:"text"},{k:"st",label:"状態",type:"select",opts:["公開","停止"],badge:1}],
+  rows:[{type:"HP",no:"01",title:"コーポレートサイト",url:"example.co.jp",st:"公開"},{type:"LP",no:"01",title:"無料診断LP（メイン）",url:"example.com/lp",st:"公開"},{type:"Instagram",no:"01",title:"AI診断リール①",url:"instagram.com/p/aaa",st:"公開"},{type:"TikTok",no:"01",title:"AI時短ショート",url:"tiktok.com/@xxx",st:"停止"}],
+  autoNo:1},
+ docs:{title:"資料・PDF管理",sub:"面談・納品・契約で使う資料（追加・差替・削除）",
+  cols:[{k:"type",label:"種別",type:"select",opts:["オファー","レポート","事例","契約","法務","補助金","会社"],badge:1},{k:"nm",label:"資料名",type:"text",nm:1},{k:"fmt",label:"形式",type:"text"},{k:"ver",label:"版",type:"text"},{k:"st",label:"状態",type:"select",opts:["使用中","停止"],badge:1}],
+  rows:[{type:"オファー",nm:"診断レポート ご提案スライド",fmt:"PDF/PPTX",ver:"v3",st:"使用中"},{type:"レポート",nm:"診断レポート 20万版（テンプレ）",fmt:"DOCX",ver:"v2",st:"使用中"},{type:"法務",nm:"特商法・プライバシーポリシー",fmt:"PDF",ver:"v1",st:"使用中"}],
+  editLabel:"差替/修正"},
+ rules:{title:"自動フォロー・通知ルール",sub:"いつ・誰に・何を送るか（追加・修正・削除）",
+  cols:[{k:"nm",label:"ルール名",type:"text",nm:1},{k:"trig",label:"きっかけ",type:"text"},{k:"time",label:"タイミング",type:"text"},{k:"to",label:"送信先 / 方法",type:"text"},{k:"st",label:"状態",type:"select",opts:["ON","OFF"],badge:1}],
+  rows:[{nm:"面談 前日リマインド",trig:"予約済",time:"前日18:00",to:"顧客/LINE・メール",st:"ON"},{nm:"検討中フォロー",trig:"検討中",time:"3日後",to:"顧客/メール＋担当通知",st:"ON"},{nm:"入金リマインド",trig:"入金待ち",time:"2日後",to:"顧客/リンク再送",st:"ON"},{nm:"面談 遅れ警告",trig:"予約済→未実施",time:"翌日",to:"担当者/警告（赤）",st:"ON"}]},
+ sales:{title:"売上・入金管理",sub:"申込・入金（追加・修正・削除）",
+  cols:[{k:"nm",label:"顧客",type:"text",nm:1},{k:"plan",label:"プラン",type:"select",opts:["ライト診断","スタンダード診断","プレミアム診断"]},{k:"amt",label:"金額",type:"text"},{k:"pay",label:"支払方法",type:"select",opts:["カード","請求書"]},{k:"st",label:"状態",type:"select",opts:["入金済","入金待ち"],badge:1}],
+  rows:[{nm:"田中商店",plan:"ライト診断",amt:"¥100,000",pay:"カード",st:"入金済"},{nm:"緑川商会",plan:"プレミアム診断",amt:"¥300,000",pay:"請求書",st:"入金済"},{nm:"鈴木物産",plan:"スタンダード診断",amt:"¥200,000",pay:"請求書",st:"入金待ち"}]},
+};
+const settings=[["スタッフ・権限","クローザー・代理店の追加と権限"],["通知の設定","アプリ内・メール・LINEの通知先"],["会社・特商法情報","表記・プライバシーポリシー"],["決済・請求の連携","Stripe・freee・クラウドサイン"],["診断・配信の文章","ゲーム・LINE・台本の編集"],["バックアップ・エクスポート","データのCSV出力"]];
+let tasks=[
+ {id:1,nm:"山田商事",ac:"検討フォローの連絡",due:"期限：昨日（1日超過）",al:1,c:"#DC2626",done:0},
+ {id:2,nm:"鈴木物産",ac:"入金確認・リンク再送",due:"入金待ち 3日",al:1,c:"#DC2626",done:0},
+ {id:3,nm:"佐藤工業",ac:"面談 本日14:00 の準備",due:"あと2時間",al:0,c:"#D9870B",done:0},
+ {id:4,nm:"田中商店",ac:"診断レポートの作成・納品",due:"期限：明日",al:0,c:"#16A34A",done:0},
+];
+let taskSeq=5;
+
+/* ---------- badge color ---------- */
+function badgeCls(v){
+ if(["公開","使用中","入金済","ON","成約","納品済"].includes(v))return"b-green";
+ if(["停止","入金待ち","OFF","検討中","面談済","予約済"].includes(v))return"b-amber";
+ if(["不成約"].includes(v))return"b-red";
+ if(["個人・1人社長","小規模法人","中小・複数部署","ライト診断","スタンダード診断","プレミアム診断","HP","LP","Instagram","YouTube","TikTok","Threads","Facebook","note","メール","LINE","アプリ内","カード","請求書","オファー","レポート","事例","契約","法務","補助金","会社"].includes(v))return"b-navy";
+ return"b-gray";
+}
+
+/* ---------- generic render ---------- */
+function renderEntity(key){
+ const e=ENT[key];const view=document.getElementById(key);
+ const cols=e.cols.map(c=>`<th>${c.label}</th>`).join('')+'<th style="width:1%">操作</th>';
+ const body=e.rows.length?e.rows.map((r,i)=>{
+   const tds=e.cols.map(c=>{
+     let v=r[c.k]||'';
+     if(c.badge)return`<td><span class="badge ${badgeCls(v)}">${v}</span></td>`;
+     if(c.nm)return`<td class="nm">${v}</td>`;
+     return`<td>${v}</td>`;
+   }).join('');
+   const extra=e.extraOp?`<button class="op ${e.extraOp.cls}" onclick="${e.extraOp.fn}('${key}',${i})">${e.extraOp.label}</button>`:'';
+   return`<tr>${tds}<td><div class="ops">${extra}<button class="op" onclick="openEdit('${key}',${i})">${e.editLabel||'修正'}</button><button class="op del" onclick="delRow('${key}',${i})">削除</button></div></td></tr>`;
+ }).join(''):`<tr><td colspan="${e.cols.length+1}"><div class="empty">まだありません。「＋ 追加」から登録してください。</div></td></tr>`;
+ view.innerHTML=`<div class="bar"><h2>${e.title}</h2><span class="sub">${e.sub}</span><button class="addbtn" onclick="openEdit('${key}',null)">＋ 追加</button></div>
+   <div class="panel"><table class="tbl"><thead><tr>${cols}</tr></thead><tbody>${body}</tbody></table></div>`;
+ const ct=document.getElementById('ct-'+key);if(ct)ct.textContent=e.rows.length;
+}
+
+/* ---------- modal CRUD ---------- */
+let editCtx={key:null,idx:null};
+function openEdit(key,idx){
+ editCtx={key,idx};const e=ENT[key];const row=idx!=null?e.rows[idx]:{};
+ document.getElementById('mTitle').textContent=(idx!=null?'修正':'追加')+'：'+e.title;
+ document.getElementById('mBody').innerHTML=e.cols.map(c=>{
+   let v=row[c.k]!=null?row[c.k]:'';
+   if(c.type==='select'){
+     return`<div class="fld"><label>${c.label}</label><select data-k="${c.k}">${c.opts.map(o=>`<option ${o===v?'selected':''}>${o}</option>`).join('')}</select></div>`;
+   }
+   // auto番号のヒント
+   const ph=(key==='urls'&&c.k==='no'&&idx==null)?'自動採番':'';
+   return`<div class="fld"><label>${c.label}</label><input data-k="${c.k}" value="${String(v).replace(/"/g,'&quot;')}" placeholder="${ph}"></div>`;
+ }).join('');
+ document.getElementById('modal').classList.add('on');
+}
+function saveModal(){
+ const e=ENT[editCtx.key];const obj={};
+ document.querySelectorAll('#mBody [data-k]').forEach(el=>obj[el.dataset.k]=el.value.trim());
+ // 必須(最初のtextかnm)チェック
+ const reqCol=e.cols.find(c=>c.nm)||e.cols.find(c=>c.type==='text');
+ if(reqCol&&!obj[reqCol.k]){toast(reqCol.label+'を入力してください');return;}
+ // URL自動採番
+ if(editCtx.key==='urls'&&editCtx.idx==null&&(!obj.no)){
+   const ns=e.rows.filter(r=>r.type===obj.type).map(r=>+r.no);obj.no=String((ns.length?Math.max(...ns):0)+1).padStart(2,'0');
+ }
+ if(editCtx.idx!=null){Object.assign(e.rows[editCtx.idx],obj);toast('保存しました');}
+ else{e.rows.push(obj);toast('追加しました');}
+ renderEntity(editCtx.key);computeKpis();saveEntity(editCtx.key);closeModal();
+}
+function delRow(key,idx){const e=ENT[key];if(confirm(e.rows[idx][e.cols.find(c=>c.nm)?.k||'nm']+'\nこの行を削除しますか？')){e.rows.splice(idx,1);renderEntity(key);computeKpis();saveEntity(key);toast('削除しました');}}
+function sendRow(key,idx){ENT[key].rows[idx].st='送信済';renderEntity(key);saveEntity(key);toast(ENT[key].rows[idx].nm+'へ送信しました');}
+function closeModal(){document.getElementById('modal').classList.remove('on');}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+
+/* ---------- tasks (home) ---------- */
+function renderTasks(){
+ document.getElementById('tasks').innerHTML=tasks.map(t=>`
+  <div class="task ${t.done?'done':''}" style="--c:${t.c}">
+    <div class="bd"><div class="nm2">${t.nm}</div><div class="ac">${t.ac}</div><div class="du ${t.al&&!t.done?'al':''}">${t.due}</div></div>
+    <div class="ops">
+      ${t.done?'<span class="badge b-green">完了</span>':`<button class="op go" onclick="doneTask(${t.id})">対応する</button>`}
+      <button class="op" onclick="openTask(${t.id})">修正</button>
+      <button class="op del" onclick="delTask(${t.id})">削除</button>
+    </div>
+  </div>`).join('')||'<div class="empty">タスクはありません。</div>';
+}
+function doneTask(id){const t=tasks.find(x=>x.id===id);t.done=1;renderTasks();computeKpis();saveTasks();toast(t.nm+'：完了にしました');}
+function delTask(id){if(confirm('このタスクを削除しますか？')){tasks=tasks.filter(x=>x.id!==id);renderTasks();computeKpis();saveTasks();toast('削除しました');}}
+let taskCtx=null;
+function openTask(id){
+ taskCtx=id;const t=id?tasks.find(x=>x.id===id):{nm:'',ac:'',due:''};
+ document.getElementById('mTitle').textContent=id?'タスクを修正':'タスクを追加';
+ document.getElementById('mBody').innerHTML=`
+  <div class="fld"><label>顧客・件名</label><input id="t_nm" value="${t.nm||''}"></div>
+  <div class="fld"><label>やること</label><input id="t_ac" value="${t.ac||''}"></div>
+  <div class="fld"><label>期限</label><input id="t_due" value="${t.due||''}" placeholder="例：本日中 / 明日"></div>
+  <div class="fld"><label>重要度</label><select id="t_c"><option value="#16A34A">通常（緑）</option><option value="#D9870B">注意（黄）</option><option value="#DC2626">至急（赤）</option></select></div>`;
+ if(id)document.getElementById('t_c').value=t.c;
+ document.getElementById('modal').classList.add('on');
+ document.querySelector('.save').setAttribute('onclick','saveTask()');
+}
+function saveTask(){
+ const nm=document.getElementById('t_nm').value.trim();if(!nm){toast('顧客・件名を入力してください');return;}
+ const o={nm,ac:document.getElementById('t_ac').value.trim(),due:document.getElementById('t_due').value.trim(),c:document.getElementById('t_c').value,al:document.getElementById('t_c').value==='#DC2626'?1:0};
+ if(taskCtx){Object.assign(tasks.find(x=>x.id===taskCtx),o);toast('保存しました');}
+ else{o.id=taskSeq++;o.done=0;tasks.push(o);toast('追加しました');}
+ renderTasks();computeKpis();saveTasks();closeModal();document.querySelector('.save').setAttribute('onclick','saveModal()');
+}
+
+/* ---------- KPIs ---------- */
+function computeKpis(){
+ const open=tasks.filter(t=>!t.done).length;
+ const wait=ENT.sales.rows.filter(r=>r.st==='入金待ち').length;
+ const deal=ENT.customers.rows.filter(r=>r.st==='成約'||r.st==='納品済').length;
+ const leads=ENT.customers.rows.length;
+ document.getElementById('kpis').innerHTML=`
+  <div class="kpi" style="border-left:5px solid var(--red)"><div class="t">未完了タスク</div><div class="n" style="color:var(--red)">${open}</div></div>
+  <div class="kpi" style="border-left:5px solid var(--teal)"><div class="t">顧客（リード）</div><div class="n">${leads}</div></div>
+  <div class="kpi" style="border-left:5px solid var(--green)"><div class="t">成約・納品</div><div class="n" style="color:var(--green)">${deal}</div></div>
+  <div class="kpi" style="border-left:5px solid var(--amber)"><div class="t">入金待ち</div><div class="n" style="color:var(--amber)">${wait}</div></div>`;
+ renderHomeProgress();
+}
+function openKarteFor(i){go('karte');renderKarte(i);}
+function renderHomeProgress(){
+ const tb=document.getElementById('homeProg');if(!tb)return;
+ const rows=ENT.customers.rows;
+ tb.innerHTML=rows.length?rows.map((c,i)=>{
+   const step=STATUS_STEP[c.st]!=null?STATUS_STEP[c.st]:3;const no=String(step+1).padStart(2,'0');
+   return `<tr style="cursor:pointer" onclick="openKarteFor(${i})">
+     <td class="nm">${c.nm}</td>
+     <td><span class="badge ${badgeCls(c.seg)}">${c.seg}</span></td>
+     <td><span style="font-weight:800;color:var(--teal-d)">STEP ${no}</span> <span style="color:var(--muted);font-size:12px">${STEP_NAMES[step]}</span></td>
+     <td><span class="badge ${badgeCls(c.st)}">${c.st}</span></td>
+     <td>${c.next||'—'}</td></tr>`;
+ }).join(''):'<tr><td colspan="5"><div class="empty">顧客がいません。顧客管理から追加してください。</div></td></tr>';
+}
+
+/* ---------- settings ---------- */
+function renderSettings(){
+ document.getElementById('setCards').innerHTML=settings.map((s,i)=>`<div class="setcard"><b>${s[0]}</b><p>${s[1]}</p><button class="op" onclick="toast('${s[0]} を編集')">編集する</button></div>`).join('');
+}
+
+/* ---------- nav ---------- */
+const titles={home:["ホーム","追加・修正・削除・保存に対応"],customers:["顧客管理","進行と次アクション"],karte:["顧客カルテ","顧客別のSTEP管理と資料"],sends:["送る予定","フォロー・通知"],urls:["チャネル・URL","集客の入口を管理"],docs:["資料・PDF","面談・納品で使う資料"],rules:["自動フォロー・通知","発火ルール"],sales:["売上・入金","申込・入金"],settings:["設定・権限","各種設定"],g_free:["無料診断会ガイド","目的・ゴール・準備"],g_close:["クロージングガイド","目的・ゴール・手順"],g_report:["診断レポート納品ガイド","目的・ゴール・中身"]};
+function go(v){document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id===v));document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));document.getElementById('pt').childNodes[0].nodeValue=titles[v][0];document.getElementById('pts').textContent=titles[v][1];if(v==='karte')renderKarte(0);if(v==='home')renderHomeProgress();document.querySelector('.content').scrollTop=0;}
+document.getElementById('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b)go(b.dataset.v)});
+
+let tt;function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),1800);}
+
+/* ---------- 顧客カルテ（顧客別STEP管理） ---------- */
+const STEP_NAMES=["集客","診断ゲーム","LINE","予約","無料診断会","クロージング","診断レポート納品"];
+const STATUS_STEP={"予約済":3,"面談済":4,"検討中":5,"成約":5,"不成約":5,"納品済":6};
+const STEP_NEED=[["流入元（UTM）"],["診断タイプ"],["タグ（法人/個人）"],["事前アンケート"],["現状・時間・課題"],["結果・プラン・金額"],["納品物の確認"]];
+const STEP_FILE=[[],["診断結果"],[],["事前アンケート回答"],["面談録画","ヒアリングメモ"],["オファー資料","申込書"],["診断レポート"]];
+function renderKarte(selIdx){
+ const list=ENT.customers.rows;const view=document.getElementById('karte');
+ if(!list.length){view.innerHTML='<div class="bar"><h2>顧客カルテ</h2></div><div class="panel"><div class="empty">顧客がいません。顧客管理から追加してください。</div></div>';return;}
+ const i=Math.min(selIdx==null?0:selIdx,list.length-1);const c=list[i];const cur=STATUS_STEP[c.st]!=null?STATUS_STEP[c.st]:3;
+ const opts=list.map((x,j)=>`<option value="${j}" ${j===i?'selected':''}>${x.nm}</option>`).join('');
+ const steps=STEP_NAMES.map((nm,j)=>{
+   const state=j<cur?'done':(j===cur?'cur':'todo');
+   const bcls=state==='done'?'b-green':(state==='cur'?'b-amber':'b-gray');const blab=state==='done'?'完了':(state==='cur'?'現在ここ':'未着手');
+   const need=STEP_NEED[j].map(n=>`<span class="kchip ${state==='done'?'ok':''}">${n}</span>`).join('');
+   const no=String(j+1).padStart(2,'0');
+   let files='';
+   if(STEP_FILE[j].length){
+     const show=(state!=='todo');
+     files='<div class="ksub">ファイル・資料</div><div class="kfiles">'+STEP_FILE[j].map(f=>
+       show?`<div class="kfile"><span class="kfi">${f.length>4?'DOC':'PDF'}</span><span class="kfn">${f}</span><span class="kop" onclick="toast('${f} を表示')">表示</span></div>`
+       :`<div class="kfile pend"><span class="kfi">—</span><span class="kfn">${f}</span><span class="ktag">取得待ち</span></div>`
+     ).join('')+'</div>'+(show?`<button class="kadd" onclick="toast('STEP${no} に資料を追加（ドラッグ＆ドロップ可）')">＋ 資料を追加</button>`:'');
+   }
+   return `<div class="kstep ${state}">
+     <div class="krail">${state==='cur'?'<span class="khere">現在</span>':''}<div class="kdot"><small>STEP</small><b>${no}</b></div></div>
+     <div class="kcard"><div class="ktop"><div><span class="klab">STEP ${no}</span><div class="ktitle">${nm}</div></div><span class="badge ${bcls}" style="margin-left:auto">${blab}</span></div>
+       <div class="ksub">集める必要事項</div><div class="kchips">${need}</div>${files}</div>
+   </div>`;
+ }).join('');
+ view.innerHTML=`<div class="bar"><h2>顧客カルテ（顧客別STEP管理）</h2><span class="sub">顧客ごとの進行と資料</span><select class="kselect" onchange="renderKarte(+this.value)" style="margin-left:auto">${opts}</select></div>
+   <div class="ksummary"><b>${c.nm}</b> <span class="badge ${badgeCls(c.seg)}">${c.seg}</span> <span class="badge ${badgeCls(c.st)}">${c.st}</span> <span style="color:var(--muted);font-size:12px">担当：${c.own||'—'}　次：${c.next||'—'}</span></div>
+   <div class="ktimeline">${steps}</div>`;
+}
+
+/* ---------- ガイド ---------- */
+let GUIDES={
+ g_free:{title:"無料診断会ガイド",sub:"目的・ゴール・準備・注意",
+  lead:`無料診断会は<span class="em">「無料相談」ではない</span>。課題を自覚させ、<span class="em">診断レポートへ進む必然性</span>をつくる“診断の場”。`,
+  purpose:["相手に「ムダがある／何から手をつけるか決まっていない」と<b>自分の口で</b>気づいてもらう。","コスト試算で現状の損失（試算）を見える化し、放置リスクを実感してもらう。","「まず見える化＝診断レポートが先」という<b>順番</b>を納得してもらう。","本当の狙いは<b>診断レポートの成約</b>と、その先のバックエンドへの入口。"],
+  goals:[["i","理想","その場で<b>診断レポートを申し込む（成約）</b>。個人はカード即決まで。"],["s","標準","プランを<b>1つ提示</b>し「<b>20万か30万か</b>」を選ばせる。"],["m","最低","課題を<b>数値化して合意</b>し、<b>次アクション</b>を必ず確定して終える。"]],
+  warns:["<b>無料で設計しきらない。</b>全部渡すと有料の価値が消える。","<b>「全部AIでできます」と言わない。</b>効果は可能性／試算で止める。","<b>売り込まない。</b>話す3割・聞く7割。痛みは相手に言わせる。","<b>値引きしない。</b>決裁者か確認。30分を守る。カード番号は預からない。"],
+  prep:["オファー資料（提案スライド）","ヒアリングシート／コスト試算ツール","3プラン早見表","申込書・契約・特商法・プライバシー","決済リンク・請求書テンプレ"],
+  need:["従業員数・月商","一番困っている業務","予算感／決裁者本人か","診断タイプ（ゲーム結果）","現状の作業時間・課題"],
+  extraTitle:"成約させる技術（5フェーズ）",
+  extra:[["①","導入","売り込みでない宣言・フレーム設定"],["②","深掘り","7質問で痛みを言わせる"],["③","数値化","年◯◯万円の試算を相手に確認させる"],["④","提案","見える化が先→診断レポート"],["⑤","クローズ","「20万か30万か」で選ばせて沈黙"]]},
+ g_close:{title:"クロージングガイド",sub:"目的・ゴール・手順",
+  lead:`クロージングは<span class="em">「押し売り」ではない</span>。見えた課題を<span class="em">行動（申込）に変える</span>最後の橋。`,
+  purpose:["自覚した課題を、その場で<b>申し込む</b>という行動に変える。","「やる/やらない」ではなく<b>「どのプランか」</b>に土俵を移す。","先延ばし・検討中を防ぎ、<b>熱があるうちに</b>決めてもらう。","成約を、その先のバックエンドへの入口にする。"],
+  goals:[["i","理想","その場で<b>申込・決済</b>（個人カード即決／法人は申込＋当日請求）。"],["s","標準","プランと金額を提示し、<b>結果と次アクション</b>を必ず記録する。"],["m","最低","検討中でも<b>理由を聞き出し、再連絡日</b>を確定して終える。"]],
+  warns:["<b>自分から値引きしない。</b>価値を下げ、次も値切られる。","<b>沈黙を自分で埋めない。</b>価格提示後は待つ。","<b>効果・金額を断定しない。</b>可能性・試算で止める。","<b>面談直後にロック。</b>後日連絡は熱が冷める。検討中を放置しない。"],
+  prep:["オファー資料・3プラン早見表・見積書","申込書・業務委託契約書","特商法・クーリングオフ案内","決済リンク／請求書テンプレ","事例集（反論対応用）"],
+  need:["結果区分（成約/検討中/不成約）","（検討中なら）理由（内容/金額/タイミング/社内）","提案プラン・金額／支払方法","次アクションと日程","決裁者・稟議の状況"],
+  extraTitle:"クローズの手順",
+  extra:[["①","サマリー","痛み3点＋年間試算を要約し合意を取る"],["②","選択クローズ","「20万か30万か」で選ばせる"],["③","沈黙","提示したら黙って待つ"],["④","反論対応","高い/自分で/考えます/社内/今でない を切り分け"],["⑤","成約処理","申込・決済・次アクション日をその場で確定"]]},
+ g_report:{title:"診断レポート納品ガイド",sub:"目的・ゴール・中身",
+  lead:`診断レポートは<span class="em">「ただの報告書」ではない</span>。成果への設計図であり、<span class="em">次のバックエンドへの橋</span>。`,
+  purpose:["約束した価値（見える化・優先順位・ロードマップ）を<b>きちんと納品</b>し信頼を確定する。","顧客が<b>次に何をすればいいか</b>を明確にし、実行に向かわせる。","研修・導入支援・月額（バックエンド）への<b>自然な入口</b>を作る。","満足度を高め、<b>継続・紹介</b>につなげる。"],
+  goals:[["i","理想","納品時に<b>バックエンドの申込</b>または次回相談予約まで取る。"],["s","標準","期日内に納品・説明し合意、<b>次の提案</b>を置く。"],["m","最低","約束の期日に<b>抜けのないレポート</b>を納品し満足を確認する。"]],
+  warns:["<b>試算・効果は「可能性／試算」。</b>レポート本文も同じ表記で統一。","<b>AI生成のたたき台は人が必ず確認。</b>誤り・誇大を除く。","<b>期日を守る。</b>テンプレそのままにせず実情を反映。","<b>納品をゴールにしない。</b>バックエンドへの導線を必ず置く。"],
+  prep:["3プランのレポートテンプレ（10/20/30万）","ヒアリング内容・面談記録・コスト試算","事例・ベンチマーク資料","納品説明の進め方（画面共有の台本）","次提案資料（研修・導入支援・月額）"],
+  need:["レポート内容への合意・フィードバック","実行の意思・次にやりたいこと","バックエンドへの関心","次回アクションの日程","紹介につながりそうな相手"],
+  extraTitle:"納品の進め方",
+  extra:[["①","結論から","『一番効くのはここ』を最初に言い切る"],["②","根拠（試算）","コスト試算と棚卸しで、なぜそこかを示す"],["③","ロードマップ","3ヶ月で何を・どの順番でやるか"],["④","次の一歩","実行・導入支援・月額など次の提案を必ず置く"]]},
+};
+function gItem(key,sec,i){return `<span class="gctl"><button onclick="guideEdit('${key}','${sec}',${i})">修正</button><button class="d" onclick="guideDel('${key}','${sec}',${i})">削除</button></span>`;}
+function gAdd(key,sec){return `<button class="gaddbtn" onclick="guideEdit('${key}','${sec}',null)">＋ 追加</button>`;}
+function gEsc(s){return String(s).replace(/"/g,'&quot;');}
+function gVal(id){const e=document.getElementById(id);return e?e.value.trim():'';}
+function renderGuide(key){
+ const g=GUIDES[key];
+ const sl=(sec,cls)=>`<ul class="${cls}">${g[sec].map((x,i)=>`<li><span class="gtext">${x}</span>${gItem(key,sec,i)}</li>`).join('')}</ul>${gAdd(key,sec)}`;
+ const tiers=g.goals.map((t,i)=>`<div class="gtier ${t[0]}"><span class="tg">${t[1]}</span><p style="flex:1 1 auto">${t[2]}</p>${gItem(key,'goals',i)}</div>`).join('')+gAdd(key,'goals');
+ const extra=g.extra.map((p,i)=>`<div class="gph"><div class="n">${p[0]}</div><div style="flex:1 1 auto"><b>${p[1]}</b><p>${p[2]}</p></div>${gItem(key,'extra',i)}</div>`).join('')+gAdd(key,'extra');
+ document.getElementById(key).innerHTML=`
+  <div class="bar"><h2>${g.title}</h2><span class="sub">${g.sub}（各項目を追加・修正・削除できます）</span></div>
+  <div class="glead">${g.lead}</div>
+  <div style="margin:-8px 0 14px"><button class="gminor" onclick="guideEdit('${key}','lead',0)">✎ ひとことを修正</button></div>
+  <div class="gcard"><h3>🎯 目的（なぜやるのか）</h3>${sl('purpose','glist')}</div>
+  <div class="gcard"><h3>🏁 ゴール（どうなれば成功か）</h3>${tiers}</div>
+  <div class="gcard"><h3>⚠️ 気を付けること</h3>${sl('warns','gwarn')}</div>
+  <div class="gcard"><h3>📎 準備する資料</h3>${sl('prep','gcl')}</div>
+  <div class="gcard"><h3>📝 集める必要事項</h3>${sl('need','gcl')}</div>
+  <div class="gcard"><h3>📋 ${g.extraTitle}</h3>${extra}</div>`;
+}
+let gctx={key:null,sec:null,idx:null};
+function guideEdit(key,sec,idx){
+ gctx={key,sec,idx};const g=GUIDES[key];let html='';
+ if(sec==='goals'){const v=idx!=null?g.goals[idx]:['s','標準',''];
+   html=`<div class="fld"><label>ラベル（理想/標準/最低 など）</label><input id="gf1" value="${gEsc(v[1])}"></div><div class="fld"><label>内容（太字は &lt;b&gt;…&lt;/b&gt;）</label><textarea id="gf2" style="height:84px">${v[2]}</textarea></div>`;}
+ else if(sec==='extra'){const v=idx!=null?g.extra[idx]:['•','',''];
+   html=`<div class="fld"><label>見出し</label><input id="gf1" value="${gEsc(v[1])}"></div><div class="fld"><label>内容</label><textarea id="gf2" style="height:84px">${v[2]}</textarea></div>`;}
+ else if(sec==='lead'){html=`<div class="fld"><label>ひとことで言うと（太字は &lt;b&gt;…&lt;/b&gt;、強調は &lt;span class="em"&gt;…&lt;/span&gt;）</label><textarea id="gf1" style="height:100px">${g.lead}</textarea></div>`;}
+ else{const v=idx!=null?g[sec][idx]:'';html=`<div class="fld"><label>内容（太字は &lt;b&gt;…&lt;/b&gt;）</label><textarea id="gf1" style="height:100px">${v}</textarea></div>`;}
+ document.getElementById('mTitle').textContent=(idx!=null?'修正':'追加')+'：'+g.title;
+ document.getElementById('mBody').innerHTML=html;
+ document.getElementById('modal').classList.add('on');
+ document.querySelector('.save').setAttribute('onclick','saveGuide()');
+}
+function saveGuide(){
+ const {key,sec,idx}=gctx;const g=GUIDES[key];
+ if(sec==='goals'){const lab=gVal('gf1'),txt=gVal('gf2');if(!txt){toast('内容を入力してください');return;}
+   if(idx!=null){g.goals[idx][1]=lab||g.goals[idx][1];g.goals[idx][2]=txt;}else{g.goals.push(['s',lab||'追加',txt]);}}
+ else if(sec==='extra'){const t=gVal('gf1'),d=gVal('gf2');if(!t){toast('見出しを入力してください');return;}
+   if(idx!=null){g.extra[idx][1]=t;g.extra[idx][2]=d;}else{g.extra.push(['•',t,d]);}}
+ else if(sec==='lead'){const t=gVal('gf1');if(!t){toast('内容を入力してください');return;}g.lead=t;}
+ else{const t=gVal('gf1');if(!t){toast('内容を入力してください');return;}if(idx!=null){g[sec][idx]=t;}else{g[sec].push(t);}}
+ renderGuide(key);saveGuides();toast(idx!=null?'保存しました':'追加しました');closeModal();document.querySelector('.save').setAttribute('onclick','saveModal()');
+}
+function guideDel(key,sec,idx){if(confirm('この項目を削除しますか？')){GUIDES[key][sec].splice(idx,1);renderGuide(key);saveGuides();toast('削除しました');}}
+
+/* ========== 本番接続（API・認証） ========== */
+const LS={get:k=>{try{return localStorage.getItem('gn_'+k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem('gn_'+k,v)}catch(e){}},del:k=>{try{localStorage.removeItem('gn_'+k)}catch(e){}}};
+const AUTH={base:LS.get('api')||'',token:LS.get('tok')||''};
+const ENTKEYS=Object.keys(ENT);
+async function api(path,method,body){
+ const r=await fetch(AUTH.base.replace(/\/$/,'')+path,{method:method||'GET',headers:Object.assign({'Content-Type':'application/json'},AUTH.token?{'Authorization':'Bearer '+AUTH.token}:{}),body:body?JSON.stringify(body):undefined});
+ let j={};try{j=await r.json()}catch(e){}
+ if(!r.ok)throw (j&&j.error)?j.error:('エラー'+r.status);
+ return j;
+}
+function saveEntity(k){return api('/api/bulk/'+k,'POST',{rows:ENT[k].rows}).catch(()=>toast('保存に失敗（接続を確認）'));}
+function saveTasks(){return api('/api/bulk/tasks','POST',{rows:tasks}).catch(()=>toast('保存に失敗（接続を確認）'));}
+function saveGuides(){return api('/api/bulk/guides','POST',{rows:[GUIDES]}).catch(()=>toast('保存に失敗（接続を確認）'));}
+async function loadAll(){
+ const g=await api('/api/items/guides','GET');
+ if(g.items&&g.items.length){
+   const gg=g.items[0];delete gg._id;GUIDES=gg;
+   for(const k of ENTKEYS){const r=await api('/api/items/'+k,'GET');ENT[k].rows=(r.items||[]).map(x=>{delete x._id;return x;});}
+   const t=await api('/api/items/tasks','GET');tasks=(t.items||[]).map(x=>{delete x._id;return x;});
+   if(tasks.length){taskSeq=Math.max.apply(null,tasks.map(x=>x.id||0))+1;}
+ }else{
+   for(const k of ENTKEYS){await saveEntity(k);}await saveTasks();await saveGuides();
+ }
+}
+function startApp(){
+ ENTKEYS.forEach(renderEntity);
+ Object.keys(GUIDES).filter(k=>k.indexOf('g_')===0).forEach(renderGuide);
+ renderKarte(0);renderTasks();renderSettings();computeKpis();
+}
+let gateMode='login';
+function showGate(){document.getElementById('gate').style.display='flex';if(AUTH.base)document.getElementById('g_api').value=AUTH.base;}
+function hideGate(){document.getElementById('gate').style.display='none';}
+function gateTab(m){gateMode=m;document.getElementById('tab-login').classList.toggle('on',m==='login');document.getElementById('tab-reg').classList.toggle('on',m==='reg');document.querySelector('.gregonly').style.display=m==='reg'?'block':'none';document.getElementById('gsubmit').textContent=m==='reg'?'登録して始める':'ログイン';document.getElementById('gerr').textContent='';}
+async function gateSubmit(){
+ const base=document.getElementById('g_api').value.trim();const email=document.getElementById('g_email').value.trim();const pw=document.getElementById('g_pw').value;
+ const err=document.getElementById('gerr');err.textContent='';
+ if(!base){err.textContent='APIサーバーURLを入力してください';return;}
+ if(!email||pw.length<6){err.textContent='メールと6文字以上のパスワードが必要です';return;}
+ AUTH.base=base;LS.set('api',base);
+ const btn=document.getElementById('gsubmit');btn.disabled=true;btn.textContent='接続中…';
+ try{
+   const path=gateMode==='reg'?'/api/register':'/api/login';
+   const body={email:email,password:pw};if(gateMode==='reg')body.company=document.getElementById('g_co').value.trim();
+   const r=await api(path,'POST',body);
+   AUTH.token=r.token;LS.set('tok',r.token);
+   await loadAll();startApp();hideGate();
+ }catch(e){err.textContent=(typeof e==='string'?e:'接続に失敗しました');}
+ btn.disabled=false;btn.textContent=gateMode==='reg'?'登録して始める':'ログイン';
+}
+function logout(){LS.del('tok');AUTH.token='';showGate();}
+async function boot(){
+ if(AUTH.token&&AUTH.base){try{await api('/api/me','GET');await loadAll();startApp();hideGate();return;}catch(e){LS.del('tok');AUTH.token='';}}
+ showGate();
+}
+boot();
+</script>
+</body>
+</html>
