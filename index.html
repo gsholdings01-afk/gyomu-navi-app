@@ -270,13 +270,15 @@ function badgeCls(v){
 }
 
 /* ---------- generic render ---------- */
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escAttr(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function renderEntity(key){
  const e=ENT[key];const view=document.getElementById(key);
  const cols=e.cols.map(c=>`<th>${c.label}</th>`).join('')+'<th style="width:1%">操作</th>';
  const body=e.rows.length?e.rows.map((r,i)=>{
    const tds=e.cols.map(c=>{
-     let v=r[c.k]||'';
-     if(c.badge)return`<td><span class="badge ${badgeCls(v)}">${v}</span></td>`;
+     let raw=r[c.k]||'';let v=esc(raw);
+     if(c.badge)return`<td><span class="badge ${badgeCls(raw)}">${v}</span></td>`;
      if(c.nm)return`<td class="nm">${v}</td>`;
      return`<td>${v}</td>`;
    }).join('');
@@ -300,9 +302,10 @@ function openEdit(key,idx){
    }
    // auto番号のヒント
    const ph=(key==='urls'&&c.k==='no'&&idx==null)?'自動採番':'';
-   return`<div class="fld"><label>${c.label}</label><input data-k="${c.k}" value="${String(v).replace(/"/g,'&quot;')}" placeholder="${ph}"></div>`;
+   return`<div class="fld"><label>${c.label}</label><input data-k="${c.k}" value="${escAttr(v)}" placeholder="${ph}"></div>`;
  }).join('');
  document.getElementById('modal').classList.add('on');
+ document.querySelector('.save').setAttribute('onclick','saveModal()');
 }
 function saveModal(){
  const e=ENT[editCtx.key];const obj={};
@@ -320,14 +323,14 @@ function saveModal(){
 }
 function delRow(key,idx){const e=ENT[key];if(confirm(e.rows[idx][e.cols.find(c=>c.nm)?.k||'nm']+'\nこの行を削除しますか？')){e.rows.splice(idx,1);renderEntity(key);computeKpis();saveEntity(key);toast('削除しました');}}
 function sendRow(key,idx){ENT[key].rows[idx].st='送信済';renderEntity(key);saveEntity(key);toast(ENT[key].rows[idx].nm+'へ送信しました');}
-function closeModal(){document.getElementById('modal').classList.remove('on');}
+function closeModal(){document.getElementById('modal').classList.remove('on');var sb=document.querySelector('.save');if(sb)sb.setAttribute('onclick','saveModal()');}
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
 
 /* ---------- tasks (home) ---------- */
 function renderTasks(){
  document.getElementById('tasks').innerHTML=tasks.map(t=>`
   <div class="task ${t.done?'done':''}" style="--c:${t.c}">
-    <div class="bd"><div class="nm2">${t.nm}</div><div class="ac">${t.ac}</div><div class="du ${t.al&&!t.done?'al':''}">${t.due}</div></div>
+    <div class="bd"><div class="nm2">${esc(t.nm)}</div><div class="ac">${esc(t.ac)}</div><div class="du ${t.al&&!t.done?'al':''}">${esc(t.due)}</div></div>
     <div class="ops">
       ${t.done?'<span class="badge b-green">完了</span>':`<button class="op go" onclick="doneTask(${t.id})">対応する</button>`}
       <button class="op" onclick="openTask(${t.id})">修正</button>
@@ -378,11 +381,11 @@ function renderHomeProgress(){
  tb.innerHTML=rows.length?rows.map((c,i)=>{
    const step=STATUS_STEP[c.st]!=null?STATUS_STEP[c.st]:3;const no=String(step+1).padStart(2,'0');
    return `<tr style="cursor:pointer" onclick="openKarteFor(${i})">
-     <td class="nm">${c.nm}</td>
-     <td><span class="badge ${badgeCls(c.seg)}">${c.seg}</span></td>
+     <td class="nm">${esc(c.nm)}</td>
+     <td><span class="badge ${badgeCls(c.seg)}">${esc(c.seg)}</span></td>
      <td><span style="font-weight:800;color:var(--teal-d)">STEP ${no}</span> <span style="color:var(--muted);font-size:12px">${STEP_NAMES[step]}</span></td>
-     <td><span class="badge ${badgeCls(c.st)}">${c.st}</span></td>
-     <td>${c.next||'—'}</td></tr>`;
+     <td><span class="badge ${badgeCls(c.st)}">${esc(c.st)}</span></td>
+     <td>${esc(c.next||'—')}</td></tr>`;
  }).join(''):'<tr><td colspan="5"><div class="empty">顧客がいません。顧客管理から追加してください。</div></td></tr>';
 }
 
@@ -407,7 +410,7 @@ function renderKarte(selIdx){
  const list=ENT.customers.rows;const view=document.getElementById('karte');
  if(!list.length){view.innerHTML='<div class="bar"><h2>顧客カルテ</h2></div><div class="panel"><div class="empty">顧客がいません。顧客管理から追加してください。</div></div>';return;}
  const i=Math.min(selIdx==null?0:selIdx,list.length-1);const c=list[i];const cur=STATUS_STEP[c.st]!=null?STATUS_STEP[c.st]:3;
- const opts=list.map((x,j)=>`<option value="${j}" ${j===i?'selected':''}>${x.nm}</option>`).join('');
+ const opts=list.map((x,j)=>`<option value="${j}" ${j===i?'selected':''}>${esc(x.nm)}</option>`).join('');
  const steps=STEP_NAMES.map((nm,j)=>{
    const state=j<cur?'done':(j===cur?'cur':'todo');
    const bcls=state==='done'?'b-green':(state==='cur'?'b-amber':'b-gray');const blab=state==='done'?'完了':(state==='cur'?'現在ここ':'未着手');
@@ -428,7 +431,7 @@ function renderKarte(selIdx){
    </div>`;
  }).join('');
  view.innerHTML=`<div class="bar"><h2>顧客カルテ（顧客別STEP管理）</h2><span class="sub">顧客ごとの進行と資料</span><select class="kselect" onchange="renderKarte(+this.value)" style="margin-left:auto">${opts}</select></div>
-   <div class="ksummary"><b>${c.nm}</b> <span class="badge ${badgeCls(c.seg)}">${c.seg}</span> <span class="badge ${badgeCls(c.st)}">${c.st}</span> <span style="color:var(--muted);font-size:12px">担当：${c.own||'—'}　次：${c.next||'—'}</span></div>
+   <div class="ksummary"><b>${esc(c.nm)}</b> <span class="badge ${badgeCls(c.seg)}">${esc(c.seg)}</span> <span class="badge ${badgeCls(c.st)}">${esc(c.st)}</span> <span style="color:var(--muted);font-size:12px">担当：${esc(c.own||'—')}　次：${esc(c.next||'—')}</span></div>
    <div class="ktimeline">${steps}</div>`;
 }
 
@@ -563,7 +566,12 @@ async function gateSubmit(){
 }
 function logout(){LS.del('tok');AUTH.token='';showGate();}
 async function boot(){
- if(AUTH.token&&AUTH.base){try{await api('/api/me','GET');await loadAll();startApp();hideGate();return;}catch(e){LS.del('tok');AUTH.token='';}}
+ if(AUTH.token&&AUTH.base){
+   try{await api('/api/me','GET');}
+   catch(e){LS.del('tok');AUTH.token='';showGate();return;}
+   try{await loadAll();}catch(e){toast('一部データの読込に失敗。メニューを選び直すと再読込されます');}
+   startApp();hideGate();return;
+ }
  showGate();
 }
 boot();
