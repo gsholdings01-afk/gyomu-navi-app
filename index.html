@@ -216,13 +216,12 @@ button{font-family:inherit;cursor:pointer}:focus-visible{outline:3px solid rgba(
   <div class="glogo"><span class="gl">G</span> 業務ナビ</div>
   <div class="gsub">運営システムにログイン</div>
   <div class="gtabs"><button id="tab-login" class="on" onclick="gateTab('login')">ログイン</button><button id="tab-reg" onclick="gateTab('reg')">新規登録</button></div>
-  <div class="gfield"><label>APIサーバーURL（Renderの公開URL）</label><input id="g_api" placeholder="https://gyomu-navi-api.onrender.com"></div>
   <div class="gfield"><label>メールアドレス</label><input id="g_email" type="email" placeholder="you@example.com"></div>
   <div class="gfield"><label>パスワード（6文字以上）</label><input id="g_pw" type="password" placeholder="••••••"></div>
   <div class="gfield gregonly" style="display:none"><label>会社名（任意）</label><input id="g_co" placeholder="〇〇株式会社"></div>
   <button class="gbtn" id="gsubmit" onclick="gateSubmit()">ログイン</button>
   <div class="gerr" id="gerr"></div>
-  <div class="ghint">初めての方は「新規登録」から。APIサーバーURLは、公開後に発行されるRenderのURL（…onrender.com）を貼り付けてください。初回ログイン時にサンプルが入ります。</div>
+  <div class="ghint">初めての方は「新規登録」から。メールとパスワードを決めて登録してください。初回登録時にサンプルが入ります。</div>
  </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -511,10 +510,15 @@ function guideDel(key,sec,idx){if(confirm('この項目を削除しますか？'
 
 /* ========== 本番接続（API・認証） ========== */
 const LS={get:k=>{try{return localStorage.getItem('gn_'+k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem('gn_'+k,v)}catch(e){}},del:k=>{try{localStorage.removeItem('gn_'+k)}catch(e){}}};
-const AUTH={base:LS.get('api')||'',token:LS.get('tok')||''};
+const API_BASE='https://gyomu-navi-api.onrender.com';
+const AUTH={base:API_BASE,token:LS.get('tok')||''};
 const ENTKEYS=Object.keys(ENT);
 async function api(path,method,body){
- const r=await fetch(AUTH.base.replace(/\/$/,'')+path,{method:method||'GET',headers:Object.assign({'Content-Type':'application/json'},AUTH.token?{'Authorization':'Bearer '+AUTH.token}:{}),body:body?JSON.stringify(body):undefined});
+ const opt={method:method||'GET',headers:Object.assign({'Content-Type':'application/json'},AUTH.token?{'Authorization':'Bearer '+AUTH.token}:{}),body:body?JSON.stringify(body):undefined};
+ const url=AUTH.base.replace(/\/$/,'')+path;
+ let r=null;
+ for(let i=0;i<3;i++){try{r=await fetch(url,opt);break;}catch(e){await new Promise(s=>setTimeout(s,1500));}}
+ if(!r)throw 'サーバーに接続できません（起動待ちの可能性）。20〜30秒ほど待って、もう一度お試しください';
  let j={};try{j=await r.json()}catch(e){}
  if(!r.ok)throw (j&&j.error)?j.error:('エラー'+r.status);
  return j;
@@ -539,23 +543,22 @@ function startApp(){
  renderKarte(0);renderTasks();renderSettings();computeKpis();
 }
 let gateMode='login';
-function showGate(){document.getElementById('gate').style.display='flex';if(AUTH.base)document.getElementById('g_api').value=AUTH.base;}
+function showGate(){document.getElementById('gate').style.display='flex';}
 function hideGate(){document.getElementById('gate').style.display='none';}
 function gateTab(m){gateMode=m;document.getElementById('tab-login').classList.toggle('on',m==='login');document.getElementById('tab-reg').classList.toggle('on',m==='reg');document.querySelector('.gregonly').style.display=m==='reg'?'block':'none';document.getElementById('gsubmit').textContent=m==='reg'?'登録して始める':'ログイン';document.getElementById('gerr').textContent='';}
 async function gateSubmit(){
- const base=document.getElementById('g_api').value.trim();const email=document.getElementById('g_email').value.trim();const pw=document.getElementById('g_pw').value;
+ const email=document.getElementById('g_email').value.trim();const pw=document.getElementById('g_pw').value;
  const err=document.getElementById('gerr');err.textContent='';
- if(!base){err.textContent='APIサーバーURLを入力してください';return;}
  if(!email||pw.length<6){err.textContent='メールと6文字以上のパスワードが必要です';return;}
- AUTH.base=base;LS.set('api',base);
  const btn=document.getElementById('gsubmit');btn.disabled=true;btn.textContent='接続中…';
  try{
    const path=gateMode==='reg'?'/api/register':'/api/login';
    const body={email:email,password:pw};if(gateMode==='reg')body.company=document.getElementById('g_co').value.trim();
    const r=await api(path,'POST',body);
    AUTH.token=r.token;LS.set('tok',r.token);
-   await loadAll();startApp();hideGate();
- }catch(e){err.textContent=(typeof e==='string'?e:'接続に失敗しました');}
+ }catch(e){err.textContent=(typeof e==='string'?e:'サーバーに接続できません。少し待って再度お試しください');btn.disabled=false;btn.textContent=gateMode==='reg'?'登録して始める':'ログイン';return;}
+ try{await loadAll();}catch(e){toast('一部データの読込に失敗。メニューを選び直すと再読込されます');}
+ startApp();hideGate();
  btn.disabled=false;btn.textContent=gateMode==='reg'?'登録して始める':'ログイン';
 }
 function logout(){LS.del('tok');AUTH.token='';showGate();}
