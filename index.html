@@ -194,7 +194,10 @@ button{font-family:inherit;cursor:pointer}:focus-visible{outline:3px solid rgba(
 
     <!-- settings -->
     <section class="view" id="settings">
-      <div class="bar"><h2>設定・権限</h2><span class="sub">各項目を編集</span></div>
+      <div class="bar"><h2>設定・権限</h2><span class="sub">会社情報・メンバー権限・料金プラン</span></div>
+      <div id="company"></div>
+      <div id="members"></div>
+      <div id="plans"></div>
     </section>
 
     <section class="view" id="karte"></section>
@@ -250,6 +253,15 @@ const ENT={
  sales:{title:"売上・入金管理",sub:"申込・入金（追加・修正・削除）",
   cols:[{k:"nm",label:"顧客",type:"text",nm:1},{k:"plan",label:"プラン",type:"select",opts:["ライト診断","スタンダード診断","プレミアム診断"]},{k:"amt",label:"金額",type:"text"},{k:"pay",label:"支払方法",type:"select",opts:["カード","請求書"]},{k:"st",label:"状態",type:"select",opts:["入金済","入金待ち"],badge:1}],
   rows:[{nm:"田中商店",plan:"ライト診断",amt:"¥100,000",pay:"カード",st:"入金済"},{nm:"緑川商会",plan:"プレミアム診断",amt:"¥300,000",pay:"請求書",st:"入金済"},{nm:"鈴木物産",plan:"スタンダード診断",amt:"¥200,000",pay:"請求書",st:"入金待ち"}]},
+ company:{title:"会社情報",sub:"請求書・特商法表記などに使う自社情報（修正）",
+  cols:[{k:"nm",label:"会社名",type:"text",nm:1},{k:"rep",label:"代表・担当者",type:"text"},{k:"tel",label:"電話",type:"text"},{k:"email",label:"メール",type:"text"},{k:"site",label:"HP / URL",type:"text"}],
+  rows:[{nm:"グローバルシフト株式会社",rep:"運営担当",tel:"",email:"gsholdings01@gmail.com",site:"example.co.jp"}]},
+ members:{title:"メンバー・権限",sub:"クローザー・代理店の追加と権限（追加・修正・削除）",
+  cols:[{k:"nm",label:"名前",type:"text",nm:1},{k:"role",label:"役割・権限",type:"select",opts:["管理者","運営担当","閲覧のみ"],badge:1},{k:"email",label:"メール",type:"text"},{k:"memo",label:"担当範囲・備考",type:"text"}],
+  rows:[{nm:"運営担当",role:"管理者",email:"gsholdings01@gmail.com",memo:"全体管理・設定変更"},{nm:"クローザーA",role:"運営担当",email:"",memo:"クロージング担当"}]},
+ plans:{title:"料金プラン設定",sub:"診断レポートの料金プラン（追加・修正・削除）",
+  cols:[{k:"nm",label:"プラン名",type:"text",nm:1},{k:"price",label:"価格",type:"text"},{k:"target",label:"対象",type:"select",opts:["個人・1人社長","小規模法人","中小・複数部署"]},{k:"note",label:"内容・備考",type:"text"},{k:"st",label:"状態",type:"select",opts:["公開","停止"],badge:1}],
+  rows:[{nm:"ライト診断",price:"¥100,000",target:"個人・1人社長",note:"1人社長・個人向けの基本診断",st:"公開"},{nm:"スタンダード診断",price:"¥200,000",target:"小規模法人",note:"本命プラン（2〜20名の小規模法人）",st:"公開"},{nm:"プレミアム診断",price:"¥300,000",target:"中小・複数部署",note:"複数部署・中小向け（迷ったら基準提示）",st:"公開"}]},
 };
 const settings=[["スタッフ・権限","クローザー・代理店の追加と権限"],["通知の設定","アプリ内・メール・LINEの通知先"],["会社・特商法情報","表記・プライバシーポリシー"],["決済・請求の連携","Stripe・freee・クラウドサイン"],["診断・配信の文章","ゲーム・LINE・台本の編集"],["バックアップ・エクスポート","データのCSV出力"]];
 let tasks=[
@@ -262,10 +274,10 @@ let taskSeq=5;
 
 /* ---------- badge color ---------- */
 function badgeCls(v){
- if(["公開","使用中","入金済","ON","成約","納品済"].includes(v))return"b-green";
+ if(["公開","使用中","入金済","ON","成約","納品済","管理者"].includes(v))return"b-green";
  if(["停止","入金待ち","OFF","検討中","面談済","予約済"].includes(v))return"b-amber";
  if(["不成約"].includes(v))return"b-red";
- if(["個人・1人社長","小規模法人","中小・複数部署","ライト診断","スタンダード診断","プレミアム診断","HP","LP","Instagram","YouTube","TikTok","Threads","Facebook","note","メール","LINE","アプリ内","カード","請求書","オファー","レポート","事例","契約","法務","補助金","会社"].includes(v))return"b-navy";
+ if(["個人・1人社長","小規模法人","中小・複数部署","ライト診断","スタンダード診断","プレミアム診断","HP","LP","Instagram","YouTube","TikTok","Threads","Facebook","note","メール","LINE","アプリ内","カード","請求書","オファー","レポート","事例","契約","法務","補助金","会社","運営担当","閲覧のみ"].includes(v))return"b-navy";
  return"b-gray";
 }
 
@@ -390,9 +402,7 @@ function renderHomeProgress(){
 }
 
 /* ---------- settings ---------- */
-function renderSettings(){
- document.getElementById('setCards').innerHTML=settings.map((s,i)=>`<div class="setcard"><b>${s[0]}</b><p>${s[1]}</p><button class="op" onclick="toast('${s[0]} を編集')">編集する</button></div>`).join('');
-}
+function renderSettings(){/* 設定3項目はENTKEYSで描画 */}
 
 /* ---------- nav ---------- */
 const titles={home:["ホーム","追加・修正・削除・保存に対応"],customers:["顧客管理","進行と次アクション"],karte:["顧客カルテ","顧客別のSTEP管理と資料"],sends:["送る予定","フォロー・通知"],urls:["チャネル・URL","集客の入口を管理"],docs:["資料・PDF","面談・納品で使う資料"],rules:["自動フォロー・通知","発火ルール"],sales:["売上・入金","申込・入金"],settings:["設定・権限","各種設定"],g_free:["無料診断会ガイド","目的・ゴール・準備"],g_close:["クロージングガイド","目的・ゴール・手順"],g_report:["診断レポート納品ガイド","目的・ゴール・中身"]};
@@ -529,13 +539,21 @@ async function api(path,method,body){
 function saveEntity(k){return api('/api/bulk/'+k,'POST',{rows:ENT[k].rows}).catch(()=>toast('保存に失敗（接続を確認）'));}
 function saveTasks(){return api('/api/bulk/tasks','POST',{rows:tasks}).catch(()=>toast('保存に失敗（接続を確認）'));}
 function saveGuides(){return api('/api/bulk/guides','POST',{rows:[GUIDES]}).catch(()=>toast('保存に失敗（接続を確認）'));}
+const SEED_IF_EMPTY=['company','members','plans'];
 async function loadAll(){
  const g=await api('/api/items/guides','GET');
  if(g.items&&g.items.length){
    const gg=g.items[0];delete gg._id;GUIDES=gg;
-   for(const k of ENTKEYS){const r=await api('/api/items/'+k,'GET');ENT[k].rows=(r.items||[]).map(x=>{delete x._id;return x;});}
-   const t=await api('/api/items/tasks','GET');tasks=(t.items||[]).map(x=>{delete x._id;return x;});
-   if(tasks.length){taskSeq=Math.max.apply(null,tasks.map(x=>x.id||0))+1;}
+   for(const k of ENTKEYS){
+     try{
+       const r=await api('/api/items/'+k,'GET');
+       const rows=(r.items||[]).map(x=>{delete x._id;return x;});
+       if(rows.length){ENT[k].rows=rows;}
+       else if(SEED_IF_EMPTY.indexOf(k)>=0){saveEntity(k);}
+       else{ENT[k].rows=rows;}
+     }catch(e){}
+   }
+   try{const t=await api('/api/items/tasks','GET');tasks=(t.items||[]).map(x=>{delete x._id;return x;});if(tasks.length){taskSeq=Math.max.apply(null,tasks.map(x=>x.id||0))+1;}}catch(e){}
  }else{
    for(const k of ENTKEYS){await saveEntity(k);}await saveTasks();await saveGuides();
  }
